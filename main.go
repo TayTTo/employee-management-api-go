@@ -2,23 +2,24 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/go-sql-driver/mysql"
 )
 
-
 var db *sql.DB
 
 type Employees struct {
-	ID int64
+	ID        int64
 	BirthDate string
 	FirstName string
-	LastName string
-	Gender string
-	HireDate string
+	LastName  string
+	Gender    string
+	HireDate  string
 }
 
 func main() {
@@ -40,56 +41,63 @@ func main() {
 		log.Fatal(pingErr)
 	}
 	fmt.Println("Connected!")
-	employee, err := getEmployeesByName("Sachin")
-	if err != nil {
-		log.Fatal(err)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /getByName/{name}", getEmployeeByName)
+	svr := &http.Server{
+		Addr:    ":8080",
+		Handler: mux,
 	}
-	fmt.Printf("Employee found: %v\n", employee);
+	svr.ListenAndServe()
 
-	emp, err := getEmployeeById(490548)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("Employee found: %v", emp)
+	// emp, err := getEmployeeById(490548)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Printf("Employee found: %v", emp)
 
-	empID, err := addEmployee(Employees{
-		ID: 999999,
-		BirthDate: "2003-08-09",
-		FirstName: "Anh",
-		LastName: "Do",
-		Gender: "M",
-		HireDate: "2025-07-30",
-	})
-	
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("ID of added employee: %v\n", empID)
+	// empID, err := addEmployee(Employees{
+	// 	ID: 999999,
+	// 	BirthDate: "2003-08-09",
+	// 	FirstName: "Anh",
+	// 	LastName: "Do",
+	// 	Gender: "M",
+	// 	HireDate: "2025-07-30",
+	// })
+
 }
 
-func getEmployeesByName(firstName string) ([]Employees, error) {
+func getEmployeeByName(w http.ResponseWriter, r *http.Request) {
 	var employees []Employees
+	firstName := r.PathValue("name")
 	rows, err := db.Query("SELECT * FROM employees WHERE first_name = ?", firstName)
 	if err != nil {
-		return nil, fmt.Errorf("getEmployeesByName %q: %v", firstName, err);
+		fmt.Errorf("getEmployeesByName %q: %v", firstName, err)
 	}
-	
+
 	defer rows.Close()
 	for rows.Next() {
 		var employee Employees
 		if err := rows.Scan(&employee.ID, &employee.BirthDate, &employee.FirstName, &employee.LastName, &employee.Gender, &employee.HireDate); err != nil {
-			return nil, fmt.Errorf("getEmployeesByName %q: %v", firstName, err)
+			fmt.Errorf("getEmployeesByName %q: %v", firstName, err)
 		}
 		employees = append(employees, employee)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("albumsByArtist %q: %v", firstName, err)
+		fmt.Errorf("albumsByArtist %q: %v", firstName, err)
 	}
-	return employees, nil
+	for _, emp := range employees {
+		fmt.Println(emp)
+		employees_json, err := json.MarshalIndent(employees, "", "	")
+		if err != nil {
+			log.Fatal(err)
+		}
+		first_name := []byte(employees_json)
+		w.Write(first_name)
+	}
 }
 
 func getEmployeeById(employeeId int64) (Employees, error) {
-	var employee Employees;
+	var employee Employees
 	row := db.QueryRow("SELECT * FROM employees WHERE emp_no = ?", employeeId)
 	if err := row.Scan(&employee.ID, &employee.BirthDate, &employee.FirstName, &employee.LastName, &employee.Gender, &employee.HireDate); err != nil {
 		if err == sql.ErrNoRows {
