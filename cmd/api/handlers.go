@@ -1,33 +1,19 @@
 package main
 
 import (
-	"database/sql"
+	"employee-management/internal/data"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 )
 
 func (app *application) getEmployeeByName(w http.ResponseWriter, r *http.Request) {
-	var employees []Employees
+	var employees []data.Employees
 	firstName := r.PathValue("name")
-	rows, err := db.Query("SELECT * FROM employees WHERE first_name = ?", firstName)
-	if err != nil {
-		app.logger.Error(err.Error())
-		os.Exit(1)
-	}
 
-	defer rows.Close()
-	for rows.Next() {
-		var employee Employees
-		if err := rows.Scan(&employee.ID, &employee.BirthDate, &employee.FirstName, &employee.LastName, &employee.Gender, &employee.HireDate); err != nil {
-			log.Fatal(err)
-		}
-		employees = append(employees, employee)
-	}
-	if err := rows.Err(); err != nil {
-		log.Fatal(err)
+	if err := app.models.Movies.GET(firstName, &employees); err != nil {
+		app.logger.Error(err.Error())
 	}
 	for _, emp := range employees {
 		fmt.Println(emp)
@@ -40,7 +26,7 @@ func (app *application) getEmployeeByName(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (app *application) getEmployeeById(w http.ResponseWriter, r *http.Request) {
+/* func (app *application) getEmployeeById(w http.ResponseWriter, r *http.Request) {
 	var employee Employees
 	employeeId := r.PathValue("id")
 	row := db.QueryRow("SELECT * FROM employees WHERE emp_no = ?", employeeId)
@@ -56,7 +42,7 @@ func (app *application) getEmployeeById(w http.ResponseWriter, r *http.Request) 
 	}
 	employee_data := []byte(employees_json)
 	w.Write(employee_data)
-}
+} */
 
 /* func (app *application) addEmployee(w http.ResponseWriter, r *http.Request) {
 	result, err := db.Exec("INSERT INTO employees (emp_no, birth_date, first_name, last_name, gender, hire_date) VALUES (?, ?, ?, ?, ?, ?)", employee.ID, employee.BirthDate, employee.FirstName, employee.LastName, employee.Gender, employee.HireDate)
