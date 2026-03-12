@@ -8,11 +8,13 @@ import (
 	"net/http"
 )
 
+
 func (app *application) getEmployeeByName(w http.ResponseWriter, r *http.Request) {
 	var employees []data.Employees
-	firstName := r.PathValue("name")
+	input := data.EmployeeFilter{}
+	*input.FirstName = r.PathValue("name")
 
-	if err := app.models.Movies.GET(firstName, &employees); err != nil {
+	if err := app.models.Movies.GET(&input, &employees); err != nil {
 		app.logger.Error(err.Error())
 	}
 	for _, emp := range employees {

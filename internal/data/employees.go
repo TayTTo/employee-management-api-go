@@ -19,8 +19,8 @@ type MovieModel struct {
 	DB *sql.DB
 }
 
-func (m MovieModel) GET (firstName string, empList *[]Employees) (error) {
-	rows, err := m.DB.Query("SELECT * FROM employees WHERE first_name = ?", firstName)
+func (m MovieModel) GET (input *EmployeeFilter, empList *[]Employees) (error) {
+	rows, err := m.DB.Query("SELECT * FROM employees WHERE first_name = ?", input.FirstName)
 	if err != nil {
 		return fmt.Errorf("Insert query error %q: %v", err, err)
 	}
